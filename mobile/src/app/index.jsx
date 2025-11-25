@@ -45,8 +45,8 @@ export default function WelcomeScreen() {
   };
 
   const handleCustomerPath = () => {
-    // Navigate to customer services
-    router.push("/(tabs)/home");
+    // Navigate to customer registration
+    router.push("/customer-registration");
   };
 
   return (

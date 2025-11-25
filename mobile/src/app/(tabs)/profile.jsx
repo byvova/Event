@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, Pressable, Image, Switch } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  Image,
+  Switch,
+  Alert,
+  Linking,
+} from "react-native";
 import {
   User,
   Settings,
@@ -11,9 +19,13 @@ import {
   ChevronRight,
   Star,
   MapPin,
+  Heart,
+  History,
+  Share2,
 } from "lucide-react-native";
 import ScreenContainer from "../../components/ScreenContainer";
 import { useTheme } from "../../utils/theme";
+import { useRouter } from "expo-router";
 import {
   useFonts,
   Inter_400Regular,
@@ -23,6 +35,7 @@ import {
 
 export default function ProfileScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   const [fontsLoaded] = useFonts({
@@ -47,6 +60,70 @@ export default function ProfileScreen() {
       "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
   };
 
+  const handleEditProfile = () => {
+    router.push("/edit-profile");
+  };
+
+  const handlePaymentMethods = () => {
+    router.push("/payment-methods");
+  };
+
+  const handlePrivacySettings = () => {
+    Alert.alert("Privacy Settings", "Manage your privacy and data settings.", [
+      { text: "OK" },
+    ]);
+  };
+
+  const handleHelpCenter = () => {
+    Alert.alert("Help Center", "How can we help you today?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Email Support",
+        onPress: () => Linking.openURL("mailto:support@licenfind.com"),
+      },
+      {
+        text: "FAQ",
+        onPress: () => {
+          // Open FAQ page
+        },
+      },
+    ]);
+  };
+
+  const handleViewFavorites = () => {
+    router.push("/favorites");
+  };
+
+  const handleBookingHistory = () => {
+    router.push("/booking-history");
+  };
+
+  const handleShareApp = () => {
+    Alert.alert("Share LicenFind", "Help others find trusted contractors!", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Share",
+        onPress: () => {
+          // Share functionality would go here
+          Alert.alert("Thanks for sharing!", "");
+        },
+      },
+    ]);
+  };
+
+  const handleLogout = () => {
+    Alert.alert("Log Out", "Are you sure you want to log out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Log Out",
+        style: "destructive",
+        onPress: () => {
+          router.replace("/");
+        },
+      },
+    ]);
+  };
+
   const menuSections = [
     {
       title: "Account",
@@ -57,6 +134,23 @@ export default function ProfileScreen() {
           icon: User,
           color: theme.colors.blue,
           hasChevron: true,
+          onPress: handleEditProfile,
+        },
+        {
+          id: "favorites",
+          label: "Favorite Contractors",
+          icon: Heart,
+          color: theme.colors.red,
+          hasChevron: true,
+          onPress: handleViewFavorites,
+        },
+        {
+          id: "booking-history",
+          label: "Booking History",
+          icon: History,
+          color: theme.colors.purple,
+          hasChevron: true,
+          onPress: handleBookingHistory,
         },
         {
           id: "payment-methods",
@@ -64,6 +158,7 @@ export default function ProfileScreen() {
           icon: CreditCard,
           color: theme.colors.green,
           hasChevron: true,
+          onPress: handlePaymentMethods,
         },
         {
           id: "notifications",
@@ -85,6 +180,7 @@ export default function ProfileScreen() {
           icon: Shield,
           color: theme.colors.purple,
           hasChevron: true,
+          onPress: handlePrivacySettings,
         },
       ],
     },
@@ -97,6 +193,15 @@ export default function ProfileScreen() {
           icon: HelpCircle,
           color: theme.colors.blue,
           hasChevron: true,
+          onPress: handleHelpCenter,
+        },
+        {
+          id: "share-app",
+          label: "Share App",
+          icon: Share2,
+          color: theme.colors.green,
+          hasChevron: true,
+          onPress: handleShareApp,
         },
       ],
     },
@@ -109,6 +214,7 @@ export default function ProfileScreen() {
           icon: LogOut,
           color: theme.colors.red,
           hasChevron: false,
+          onPress: handleLogout,
         },
       ],
     },
@@ -173,15 +279,7 @@ export default function ProfileScreen() {
           opacity: pressed ? 0.7 : 1,
           ...theme.colors.shadow,
         })}
-        onPress={() => {
-          if (item.id === "logout") {
-            // Handle logout
-            console.log("Logout pressed");
-          } else {
-            // Handle other menu items
-            console.log(`${item.id} pressed`);
-          }
-        }}
+        onPress={item.onPress || (() => {})}
       >
         <View
           style={{

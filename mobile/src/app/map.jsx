@@ -15,6 +15,8 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MapView, { PROVIDER_GOOGLE, Marker, Callout } from "react-native-maps";
 import { useTheme } from "../utils/theme";
+import { getAllSubcategories } from "../data/categories";
+import { getIconComponent } from "../utils/iconMapping";
 import {
   useFonts,
   Inter_400Regular,
@@ -42,6 +44,7 @@ export default function MapScreen() {
   }
 
   // Mock contractors with locations
+  // Update contractor categories to use new subcategory IDs
   const contractors = [
     {
       id: 1,
@@ -55,7 +58,7 @@ export default function MapScreen() {
       image:
         "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
       coordinate: { latitude: 37.7849, longitude: -122.4094 },
-      category: "electrical",
+      category: "electricians",
       availability: "Available today",
       responseTime: "Responds in ~2 hours",
     },
@@ -71,7 +74,7 @@ export default function MapScreen() {
       image:
         "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
       coordinate: { latitude: 37.7949, longitude: -122.4194 },
-      category: "plumbing",
+      category: "plumbers",
       availability: "Available tomorrow",
       responseTime: "Responds in ~1 hour",
     },
@@ -87,7 +90,7 @@ export default function MapScreen() {
       image:
         "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
       coordinate: { latitude: 37.7749, longitude: -122.3994 },
-      category: "construction",
+      category: "finishers",
       availability: "Available this week",
       responseTime: "Responds in ~3 hours",
     },
@@ -103,7 +106,7 @@ export default function MapScreen() {
       image:
         "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
       coordinate: { latitude: 37.7649, longitude: -122.4294 },
-      category: "painting",
+      category: "painters-plasterers",
       availability: "Available next week",
       responseTime: "Responds in ~4 hours",
     },
@@ -123,15 +126,67 @@ export default function MapScreen() {
       availability: "Available today",
       responseTime: "Responds in ~2 hours",
     },
+    {
+      id: 6,
+      name: "Emma Wilson",
+      specialty: "Event Photographer",
+      rating: 4.9,
+      reviewCount: 156,
+      verified: true,
+      distance: "1.5 miles away",
+      hourlyRate: "$120/hr",
+      image:
+        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
+      coordinate: { latitude: 37.775, longitude: -122.415 },
+      category: "photographers",
+      availability: "Available this week",
+      responseTime: "Responds in ~1 hour",
+    },
+    {
+      id: 7,
+      name: "Alex Turner",
+      specialty: "Web Developer",
+      rating: 4.8,
+      reviewCount: 89,
+      verified: true,
+      distance: "2.1 miles away",
+      hourlyRate: "$95/hr",
+      image:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+      coordinate: { latitude: 37.785, longitude: -122.405 },
+      category: "web-developers",
+      availability: "Available next week",
+      responseTime: "Responds in ~2 hours",
+    },
   ];
 
-  const categories = [
-    { id: "electrical", name: "Electrical", color: theme.colors.orange },
-    { id: "plumbing", name: "Plumbing", color: theme.colors.blue },
-    { id: "construction", name: "Construction", color: theme.colors.purple },
-    { id: "painting", name: "Painting", color: theme.colors.green },
-    { id: "hvac", name: "HVAC", color: theme.colors.red },
-  ];
+  // Get popular categories from our data - limit to most common ones for map filter
+  const getPopularCategories = () => {
+    const allSubcategories = getAllSubcategories();
+    const categoriesWithContractors = allSubcategories.filter((sub) =>
+      contractors.some((contractor) => contractor.category === sub.id),
+    );
+
+    // Return first 6 categories that have contractors
+    return categoriesWithContractors.slice(0, 6).map((sub) => ({
+      id: sub.id,
+      name: sub.name,
+      color:
+        sub.categoryId === "construction"
+          ? theme.colors.orange
+          : sub.categoryId === "event"
+            ? theme.colors.purple
+            : sub.categoryId === "digital-it"
+              ? theme.colors.blue
+              : sub.categoryId === "household-services"
+                ? theme.colors.green
+                : sub.categoryId === "business-services"
+                  ? theme.colors.red
+                  : theme.colors.primary,
+    }));
+  };
+
+  const categories = getPopularCategories();
 
   const filteredContractors = selectedCategory
     ? contractors.filter((c) => c.category === selectedCategory)

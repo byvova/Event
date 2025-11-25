@@ -1,15 +1,7 @@
 import React, { useState } from "react";
+import { View, Text, Pressable, Image, ScrollView, Alert } from "react-native";
 import {
-  View,
-  Text,
-  Pressable,
-  Image,
-  FlatList,
-  Alert,
-  Linking,
-  ScrollView,
-} from "react-native";
-import {
+  ArrowLeft,
   Calendar,
   Clock,
   MapPin,
@@ -20,11 +12,13 @@ import {
   AlertCircle,
   MessageSquare,
   Phone,
+  Search,
+  Filter,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
-import ScreenContainer from "../../components/ScreenContainer";
-import { useTheme } from "../../utils/theme";
-import { useLanguage } from "../../utils/LanguageContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ScreenContainer from "../components/ScreenContainer";
+import { useTheme } from "../utils/theme";
 import {
   useFonts,
   Inter_400Regular,
@@ -32,11 +26,11 @@ import {
   Inter_600SemiBold,
 } from "@expo-google-fonts/inter";
 
-export default function BookingsScreen() {
+export default function BookingHistoryScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { t } = useLanguage();
-  const [selectedTab, setSelectedTab] = useState("upcoming");
+  const insets = useSafeAreaInsets();
+  const [selectedFilter, setSelectedFilter] = useState("all");
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -48,7 +42,7 @@ export default function BookingsScreen() {
     return null;
   }
 
-  const bookings = [
+  const bookingHistory = [
     {
       id: 1,
       contractorName: "Mike Johnson",
@@ -60,7 +54,7 @@ export default function BookingsScreen() {
       time: "2:00 PM - 4:00 PM",
       location: "123 Main St, San Francisco, CA",
       price: "$180",
-      status: "confirmed",
+      status: "upcoming",
       verified: true,
       rating: 4.9,
     },
@@ -75,7 +69,7 @@ export default function BookingsScreen() {
       time: "10:00 AM - 12:00 PM",
       location: "123 Main St, San Francisco, CA",
       price: "$150",
-      status: "pending",
+      status: "confirmed",
       verified: true,
       rating: 4.8,
     },
@@ -111,38 +105,73 @@ export default function BookingsScreen() {
       rating: 4.6,
       userRating: 4,
     },
+    {
+      id: 5,
+      contractorName: "Tom Wilson",
+      contractorSpecialty: "HVAC Technician",
+      contractorImage:
+        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face",
+      serviceTitle: "AC Unit Maintenance",
+      date: "Oct 28, 2024",
+      time: "1:00 PM - 3:00 PM",
+      location: "123 Main St, San Francisco, CA",
+      price: "$95",
+      status: "completed",
+      verified: true,
+      rating: 4.9,
+      userRating: 5,
+    },
+    {
+      id: 6,
+      contractorName: "Jennifer Lee",
+      contractorSpecialty: "Landscaper",
+      contractorImage:
+        "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face",
+      serviceTitle: "Garden Cleanup",
+      date: "Oct 15, 2024",
+      time: "9:00 AM - 2:00 PM",
+      location: "123 Main St, San Francisco, CA",
+      price: "$280",
+      status: "completed",
+      verified: true,
+      rating: 4.5,
+      userRating: 4,
+    },
   ];
 
-  const tabs = [
+  const filterOptions = [
+    { id: "all", label: "All", count: bookingHistory.length },
     {
       id: "upcoming",
-      label: t("upcoming"),
-      count: bookings.filter(
-        (b) => b.status === "confirmed" || b.status === "pending",
+      label: "Upcoming",
+      count: bookingHistory.filter(
+        (b) => b.status === "upcoming" || b.status === "confirmed",
       ).length,
     },
     {
       id: "completed",
-      label: t("completed"),
-      count: bookings.filter((b) => b.status === "completed").length,
+      label: "Completed",
+      count: bookingHistory.filter((b) => b.status === "completed").length,
     },
   ];
 
   const filteredBookings =
-    selectedTab === "upcoming"
-      ? bookings.filter(
-          (b) => b.status === "confirmed" || b.status === "pending",
-        )
-      : bookings.filter((b) => b.status === "completed");
+    selectedFilter === "all"
+      ? bookingHistory
+      : selectedFilter === "upcoming"
+        ? bookingHistory.filter(
+            (b) => b.status === "upcoming" || b.status === "confirmed",
+          )
+        : bookingHistory.filter((b) => b.status === selectedFilter);
 
   const getStatusColor = (status) => {
     switch (status) {
       case "confirmed":
         return theme.colors.green;
-      case "pending":
-        return theme.colors.orange;
-      case "completed":
+      case "upcoming":
         return theme.colors.blue;
+      case "completed":
+        return theme.colors.purple;
       default:
         return theme.colors.textSecondary;
     }
@@ -152,7 +181,7 @@ export default function BookingsScreen() {
     switch (status) {
       case "confirmed":
         return CheckCircle;
-      case "pending":
+      case "upcoming":
         return Clock;
       case "completed":
         return CheckCircle;
@@ -165,8 +194,8 @@ export default function BookingsScreen() {
     switch (status) {
       case "confirmed":
         return "Confirmed";
-      case "pending":
-        return "Pending Approval";
+      case "upcoming":
+        return "Upcoming";
       case "completed":
         return "Completed";
       default:
@@ -174,19 +203,59 @@ export default function BookingsScreen() {
     }
   };
 
+  const handleBookingAction = (booking, action) => {
+    switch (action) {
+      case "contact":
+        Alert.alert(
+          "Contact Contractor",
+          `How would you like to contact ${booking.contractorName}?`,
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Message",
+              onPress: () => router.push(`/chat/${booking.id}`),
+            },
+            { text: "Call", onPress: () => {} },
+          ],
+        );
+        break;
+      case "reschedule":
+        Alert.alert(
+          "Reschedule Booking",
+          "This will allow you to modify your booking time and date.",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Reschedule",
+              onPress: () => router.push(`/book/${booking.id}?reschedule=true`),
+            },
+          ],
+        );
+        break;
+      case "rate":
+        router.push(`/rate/${booking.id}`);
+        break;
+      case "book-again":
+        router.push(`/book/${booking.id}`);
+        break;
+      case "view-receipt":
+        Alert.alert("Receipt", "View receipt functionality coming soon!");
+        break;
+    }
+  };
+
   const BookingCard = ({ booking }) => {
     const StatusIcon = getStatusIcon(booking.status);
 
     return (
-      <Pressable
-        style={({ pressed }) => ({
+      <View
+        style={{
           backgroundColor: theme.colors.cardBackground,
           borderRadius: 16,
           padding: 16,
           marginBottom: 16,
-          opacity: pressed ? 0.7 : 1,
           ...theme.colors.shadow,
-        })}
+        }}
       >
         {/* Header */}
         <View
@@ -387,8 +456,8 @@ export default function BookingsScreen() {
         </View>
 
         {/* Action Buttons */}
-        <View style={{ flexDirection: "row", gap: 12 }}>
-          {booking.status === "upcoming" || booking.status === "confirmed" ? (
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {booking.status === "completed" ? (
             <>
               <Pressable
                 style={({ pressed }) => ({
@@ -397,20 +466,94 @@ export default function BookingsScreen() {
                   borderWidth: 1,
                   borderColor: theme.colors.cardBorder,
                   borderRadius: 12,
-                  paddingVertical: 12,
+                  paddingVertical: 10,
                   alignItems: "center",
                   opacity: pressed ? 0.7 : 1,
                 })}
-                onPress={() => handleReschedule(booking)}
+                onPress={() => handleBookingAction(booking, "view-receipt")}
               >
                 <Text
                   style={{
                     fontFamily: "Inter_500Medium",
-                    fontSize: 14,
+                    fontSize: 12,
                     color: theme.colors.text,
                   }}
                 >
-                  {t("reschedule")}
+                  Receipt
+                </Text>
+              </Pressable>
+
+              {!booking.userRating && (
+                <Pressable
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    backgroundColor: theme.colors.primary,
+                    borderRadius: 12,
+                    paddingVertical: 10,
+                    alignItems: "center",
+                    opacity: pressed ? 0.7 : 1,
+                  })}
+                  onPress={() => handleBookingAction(booking, "rate")}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "Inter_500Medium",
+                      fontSize: 12,
+                      color: "#FFFFFF",
+                    }}
+                  >
+                    Rate Service
+                  </Text>
+                </Pressable>
+              )}
+
+              <Pressable
+                style={({ pressed }) => ({
+                  flex: 1,
+                  backgroundColor: theme.colors.cardBackground,
+                  borderWidth: 1,
+                  borderColor: theme.colors.cardBorder,
+                  borderRadius: 12,
+                  paddingVertical: 10,
+                  alignItems: "center",
+                  opacity: pressed ? 0.7 : 1,
+                })}
+                onPress={() => handleBookingAction(booking, "book-again")}
+              >
+                <Text
+                  style={{
+                    fontFamily: "Inter_500Medium",
+                    fontSize: 12,
+                    color: theme.colors.text,
+                  }}
+                >
+                  Book Again
+                </Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <Pressable
+                style={({ pressed }) => ({
+                  flex: 1,
+                  backgroundColor: theme.colors.cardBackground,
+                  borderWidth: 1,
+                  borderColor: theme.colors.cardBorder,
+                  borderRadius: 12,
+                  paddingVertical: 10,
+                  alignItems: "center",
+                  opacity: pressed ? 0.7 : 1,
+                })}
+                onPress={() => handleBookingAction(booking, "reschedule")}
+              >
+                <Text
+                  style={{
+                    fontFamily: "Inter_500Medium",
+                    fontSize: 12,
+                    color: theme.colors.text,
+                  }}
+                >
+                  Reschedule
                 </Text>
               </Pressable>
 
@@ -419,70 +562,20 @@ export default function BookingsScreen() {
                   flex: 1,
                   backgroundColor: theme.colors.primary,
                   borderRadius: 12,
-                  paddingVertical: 12,
+                  paddingVertical: 10,
                   alignItems: "center",
                   opacity: pressed ? 0.7 : 1,
                 })}
-                onPress={() => handleContactContractor(booking)}
+                onPress={() => handleBookingAction(booking, "contact")}
               >
                 <Text
                   style={{
                     fontFamily: "Inter_500Medium",
-                    fontSize: 14,
+                    fontSize: 12,
                     color: "#FFFFFF",
                   }}
                 >
-                  {t("contact")}
-                </Text>
-              </Pressable>
-            </>
-          ) : (
-            <>
-              {!booking.userRating && (
-                <Pressable
-                  style={({ pressed }) => ({
-                    flex: 1,
-                    backgroundColor: theme.colors.primary,
-                    borderRadius: 12,
-                    paddingVertical: 12,
-                    alignItems: "center",
-                    opacity: pressed ? 0.7 : 1,
-                  })}
-                  onPress={() => handleRateService(booking)}
-                >
-                  <Text
-                    style={{
-                      fontFamily: "Inter_500Medium",
-                      fontSize: 14,
-                      color: "#FFFFFF",
-                    }}
-                  >
-                    {t("rateService")}
-                  </Text>
-                </Pressable>
-              )}
-
-              <Pressable
-                style={({ pressed }) => ({
-                  flex: booking.userRating ? 1 : 1,
-                  backgroundColor: theme.colors.cardBackground,
-                  borderWidth: 1,
-                  borderColor: theme.colors.cardBorder,
-                  borderRadius: 12,
-                  paddingVertical: 12,
-                  alignItems: "center",
-                  opacity: pressed ? 0.7 : 1,
-                })}
-                onPress={() => handleBookAgain(booking)}
-              >
-                <Text
-                  style={{
-                    fontFamily: "Inter_500Medium",
-                    fontSize: 14,
-                    color: theme.colors.text,
-                  }}
-                >
-                  {t("bookAgain")}
+                  Contact
                 </Text>
               </Pressable>
             </>
@@ -530,207 +623,222 @@ export default function BookingsScreen() {
             ))}
           </View>
         )}
-      </Pressable>
-    );
-  };
-
-  const EmptyState = () => (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        paddingHorizontal: 40,
-      }}
-    >
-      <View
-        style={{
-          width: 80,
-          height: 80,
-          borderRadius: 40,
-          backgroundColor: theme.colors.primarySoft,
-          justifyContent: "center",
-          alignItems: "center",
-          marginBottom: 24,
-        }}
-      >
-        <Calendar size={32} color={theme.colors.textSecondary} />
       </View>
-
-      <Text
-        style={{
-          fontFamily: "Inter_600SemiBold",
-          fontSize: 20,
-          color: theme.colors.text,
-          textAlign: "center",
-          marginBottom: 12,
-        }}
-      >
-        {t("noBookingsYet")}
-      </Text>
-
-      <Text
-        style={{
-          fontFamily: "Inter_400Regular",
-          fontSize: 16,
-          color: theme.colors.textSecondary,
-          textAlign: "center",
-          lineHeight: 24,
-        }}
-      >
-        {t("noBookingsDesc")}
-      </Text>
-    </View>
-  );
-
-  const handleContactContractor = (booking) => {
-    Alert.alert(
-      t("contact"),
-      `How would you like to contact ${booking.contractorName}?`,
-      [
-        { text: t("cancel"), style: "cancel" },
-        {
-          text: "Message",
-          onPress: () => router.push(`/chat/${booking.id}`),
-        },
-        {
-          text: "Call",
-          onPress: () => {
-            const phoneNumber = booking.phoneNumber || "+1 555-123-4567";
-            Linking.openURL(`tel:${phoneNumber}`);
-          },
-        },
-      ],
     );
-  };
-
-  const handleReschedule = (booking) => {
-    Alert.alert(
-      t("reschedule"),
-      "This will allow you to modify your booking time and date.",
-      [
-        { text: t("cancel"), style: "cancel" },
-        {
-          text: t("reschedule"),
-          onPress: () => router.push(`/book/${booking.id}?reschedule=true`),
-        },
-      ],
-    );
-  };
-
-  const handleRateService = (booking) => {
-    router.push(`/rate/${booking.id}`);
-  };
-
-  const handleBookAgain = (booking) => {
-    router.push(`/book/${booking.id}`);
   };
 
   return (
-    <ScreenContainer scrollable={true}>
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       {/* Header */}
-      <View style={{ marginBottom: 24 }}>
-        <Text
-          style={{
-            fontFamily: "Inter_600SemiBold",
-            fontSize: 28,
-            color: theme.colors.text,
-            marginBottom: 8,
-          }}
-        >
-          {t("yourBookings")}
-        </Text>
-        <Text
-          style={{
-            fontFamily: "Inter_400Regular",
-            fontSize: 16,
-            color: theme.colors.textSecondary,
-          }}
-        >
-          {t("manageBookings")}
-        </Text>
-      </View>
-
-      {/* Tabs */}
       <View
         style={{
-          flexDirection: "row",
-          backgroundColor: theme.colors.cardBackground,
-          borderRadius: 12,
-          padding: 4,
-          marginBottom: 24,
-          ...theme.colors.shadow,
+          paddingTop: insets.top + 16,
+          paddingHorizontal: 20,
+          paddingBottom: 16,
+          backgroundColor: theme.colors.surface,
+          borderBottomWidth: 1,
+          borderBottomColor: theme.colors.cardBorder,
         }}
       >
-        {tabs.map((tab) => (
-          <Pressable
-            key={tab.id}
-            style={({ pressed }) => ({
-              flex: 1,
-              backgroundColor:
-                selectedTab === tab.id ? theme.colors.primary : "transparent",
-              borderRadius: 8,
-              paddingVertical: 12,
-              paddingHorizontal: 16,
-              alignItems: "center",
-              opacity: pressed ? 0.7 : 1,
-            })}
-            onPress={() => setSelectedTab(tab.id)}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text
-                style={{
-                  fontFamily: "Inter_500Medium",
-                  fontSize: 14,
-                  color: selectedTab === tab.id ? "#FFFFFF" : theme.colors.text,
-                  marginRight: tab.count > 0 ? 6 : 0,
-                }}
-              >
-                {tab.label}
-              </Text>
-              {tab.count > 0 && (
-                <View
-                  style={{
-                    backgroundColor:
-                      selectedTab === tab.id
-                        ? "rgba(255, 255, 255, 0.2)"
-                        : theme.colors.primarySoft,
-                    borderRadius: 8,
-                    paddingHorizontal: 6,
-                    paddingVertical: 2,
-                    minWidth: 20,
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: "Inter_600SemiBold",
-                      fontSize: 11,
-                      color:
-                        selectedTab === tab.id
-                          ? "#FFFFFF"
-                          : theme.colors.primary,
-                    }}
-                  >
-                    {tab.count}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </Pressable>
-        ))}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Pressable
+              style={({ pressed }) => ({
+                backgroundColor: theme.colors.cardBackground,
+                borderRadius: 12,
+                padding: 8,
+                marginRight: 16,
+                opacity: pressed ? 0.7 : 1,
+              })}
+              onPress={() => router.back()}
+            >
+              <ArrowLeft size={20} color={theme.colors.text} />
+            </Pressable>
+
+            <Text
+              style={{
+                fontFamily: "Inter_600SemiBold",
+                fontSize: 18,
+                color: theme.colors.text,
+              }}
+            >
+              Booking History
+            </Text>
+          </View>
+
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <Pressable
+              style={({ pressed }) => ({
+                backgroundColor: theme.colors.cardBackground,
+                borderRadius: 12,
+                padding: 8,
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Search size={20} color={theme.colors.text} />
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => ({
+                backgroundColor: theme.colors.cardBackground,
+                borderRadius: 12,
+                padding: 8,
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Filter size={20} color={theme.colors.text} />
+            </Pressable>
+          </View>
+        </View>
       </View>
 
-      {/* Bookings List */}
-      {filteredBookings.length > 0 ? (
-        <View>
-          {filteredBookings.map((item) => (
-            <BookingCard key={item.id} booking={item} />
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: 20,
+          paddingBottom: insets.bottom + 20,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Filter Tabs */}
+        <View
+          style={{
+            flexDirection: "row",
+            backgroundColor: theme.colors.cardBackground,
+            borderRadius: 12,
+            padding: 4,
+            marginBottom: 24,
+            ...theme.colors.shadow,
+          }}
+        >
+          {filterOptions.map((filter) => (
+            <Pressable
+              key={filter.id}
+              style={({ pressed }) => ({
+                flex: 1,
+                backgroundColor:
+                  selectedFilter === filter.id
+                    ? theme.colors.primary
+                    : "transparent",
+                borderRadius: 8,
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                alignItems: "center",
+                opacity: pressed ? 0.7 : 1,
+              })}
+              onPress={() => setSelectedFilter(filter.id)}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text
+                  style={{
+                    fontFamily: "Inter_500Medium",
+                    fontSize: 14,
+                    color:
+                      selectedFilter === filter.id
+                        ? "#FFFFFF"
+                        : theme.colors.text,
+                    marginRight: filter.count > 0 ? 6 : 0,
+                  }}
+                >
+                  {filter.label}
+                </Text>
+                {filter.count > 0 && (
+                  <View
+                    style={{
+                      backgroundColor:
+                        selectedFilter === filter.id
+                          ? "rgba(255, 255, 255, 0.2)"
+                          : theme.colors.primarySoft,
+                      borderRadius: 8,
+                      paddingHorizontal: 6,
+                      paddingVertical: 2,
+                      minWidth: 20,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: "Inter_600SemiBold",
+                        fontSize: 11,
+                        color:
+                          selectedFilter === filter.id
+                            ? "#FFFFFF"
+                            : theme.colors.primary,
+                      }}
+                    >
+                      {filter.count}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </Pressable>
           ))}
         </View>
-      ) : (
-        <EmptyState />
-      )}
-    </ScreenContainer>
+
+        {/* Bookings List */}
+        {filteredBookings.length > 0 ? (
+          filteredBookings.map((booking) => (
+            <BookingCard key={booking.id} booking={booking} />
+          ))
+        ) : (
+          <View
+            style={{
+              flex: 1,
+              justifyContent: "center",
+              alignItems: "center",
+              paddingHorizontal: 40,
+              paddingVertical: 60,
+            }}
+          >
+            <View
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                backgroundColor: theme.colors.primarySoft,
+                justifyContent: "center",
+                alignItems: "center",
+                marginBottom: 24,
+              }}
+            >
+              <Calendar size={32} color={theme.colors.textSecondary} />
+            </View>
+
+            <Text
+              style={{
+                fontFamily: "Inter_600SemiBold",
+                fontSize: 20,
+                color: theme.colors.text,
+                textAlign: "center",
+                marginBottom: 12,
+              }}
+            >
+              No bookings found
+            </Text>
+
+            <Text
+              style={{
+                fontFamily: "Inter_400Regular",
+                fontSize: 16,
+                color: theme.colors.textSecondary,
+                textAlign: "center",
+                lineHeight: 24,
+              }}
+            >
+              {selectedFilter === "all"
+                ? "You haven't made any bookings yet. Start by finding a contractor!"
+                : `No ${selectedFilter} bookings found.`}
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+    </View>
   );
 }

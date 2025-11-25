@@ -35,6 +35,7 @@ export default function MessagesScreen() {
   const router = useRouter();
   const { t } = useLanguage();
   const [selectedTab, setSelectedTab] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -59,6 +60,7 @@ export default function MessagesScreen() {
       unreadCount: 2,
       verified: true,
       status: "active",
+      phoneNumber: "(555) 123-4567",
     },
     {
       id: 2,
@@ -72,6 +74,7 @@ export default function MessagesScreen() {
       unreadCount: 0,
       verified: true,
       status: "pending",
+      phoneNumber: "(555) 987-6543",
     },
     {
       id: 3,
@@ -85,6 +88,7 @@ export default function MessagesScreen() {
       unreadCount: 1,
       verified: true,
       status: "completed",
+      phoneNumber: "(555) 456-7890",
     },
     {
       id: 4,
@@ -98,6 +102,7 @@ export default function MessagesScreen() {
       unreadCount: 0,
       verified: true,
       status: "active",
+      phoneNumber: "(555) 234-5678",
     },
   ];
 
@@ -120,10 +125,16 @@ export default function MessagesScreen() {
     },
   ];
 
-  const filteredConversations =
+  const filteredConversations = (
     selectedTab === "all"
       ? conversations
-      : conversations.filter((c) => c.status === selectedTab);
+      : conversations.filter((c) => c.status === selectedTab)
+  ).filter(
+    (c) =>
+      c.contractorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.contractorSpecialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.lastMessage.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -140,6 +151,10 @@ export default function MessagesScreen() {
 
   const formatTimestamp = (timestamp) => {
     return timestamp;
+  };
+
+  const handleOpenChat = (conversation) => {
+    router.push(`/chat/${conversation.id}`);
   };
 
   const handleCallContractor = (conversation) => {
@@ -159,7 +174,7 @@ export default function MessagesScreen() {
     Alert.alert(t("contact"), `Contact ${conversation.contractorName}`, [
       {
         text: "Message",
-        onPress: () => router.push(`/chat/${conversation.id}`),
+        onPress: () => handleOpenChat(conversation),
       },
       {
         text: "Call",
@@ -180,7 +195,7 @@ export default function MessagesScreen() {
           opacity: pressed ? 0.7 : 1,
           ...theme.colors.shadow,
         })}
-        onPress={() => router.push(`/chat/${conversation.id}`)}
+        onPress={() => handleOpenChat(conversation)}
       >
         <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
           <View style={{ position: "relative" }}>
@@ -407,6 +422,35 @@ export default function MessagesScreen() {
         >
           {t("chatWithContractors")}
         </Text>
+      </View>
+
+      {/* Search Bar */}
+      <View
+        style={{
+          backgroundColor: theme.colors.cardBackground,
+          borderRadius: 12,
+          flexDirection: "row",
+          alignItems: "center",
+          paddingHorizontal: 16,
+          marginBottom: 16,
+          ...theme.colors.shadow,
+        }}
+      >
+        <Search size={20} color={theme.colors.textSecondary} />
+        <TextInput
+          style={{
+            flex: 1,
+            fontFamily: "Inter_400Regular",
+            fontSize: 16,
+            color: theme.colors.text,
+            paddingVertical: 12,
+            paddingHorizontal: 12,
+          }}
+          placeholder="Search conversations..."
+          placeholderTextColor={theme.colors.textSecondary}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
       </View>
 
       {/* Tabs */}

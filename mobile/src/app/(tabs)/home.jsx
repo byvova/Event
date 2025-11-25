@@ -7,21 +7,12 @@ import {
   ScrollView,
   Image,
 } from "react-native";
-import {
-  Search,
-  MapPin,
-  Star,
-  Shield,
-  Wrench,
-  Zap,
-  Hammer,
-  Paintbrush,
-  Droplets,
-  Thermometer,
-} from "lucide-react-native";
+import { Search, MapPin, Star, Shield, ArrowLeft } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import ScreenContainer from "../../components/ScreenContainer";
 import { useTheme } from "../../utils/theme";
+import { CATEGORIES } from "../../data/categories";
+import { getIconComponent } from "../../utils/iconMapping";
 import {
   useFonts,
   Inter_400Regular,
@@ -34,6 +25,8 @@ export default function HomeScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
+  const [viewMode, setViewMode] = useState("categories"); // "categories" | "subcategories"
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -44,40 +37,6 @@ export default function HomeScreen() {
   if (!fontsLoaded) {
     return null;
   }
-
-  const categories = [
-    {
-      id: "plumbing",
-      name: "Plumbing",
-      icon: Droplets,
-      color: theme.colors.blue,
-    },
-    {
-      id: "electrical",
-      name: "Electrical",
-      icon: Zap,
-      color: theme.colors.orange,
-    },
-    {
-      id: "construction",
-      name: "Construction",
-      icon: Hammer,
-      color: theme.colors.purple,
-    },
-    {
-      id: "painting",
-      name: "Painting",
-      icon: Paintbrush,
-      color: theme.colors.green,
-    },
-    { id: "hvac", name: "HVAC", icon: Thermometer, color: theme.colors.red },
-    {
-      id: "general",
-      name: "General",
-      icon: Wrench,
-      color: theme.colors.accent,
-    },
-  ];
 
   const featuredContractors = [
     {
@@ -91,6 +50,7 @@ export default function HomeScreen() {
       hourlyRate: "$85/hr",
       image:
         "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+      category: "electricians",
     },
     {
       id: 2,
@@ -103,6 +63,7 @@ export default function HomeScreen() {
       hourlyRate: "$75/hr",
       image:
         "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
+      category: "plumbers",
     },
     {
       id: 3,
@@ -115,23 +76,91 @@ export default function HomeScreen() {
       hourlyRate: "$95/hr",
       image:
         "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+      category: "finishers",
+    },
+    {
+      id: 4,
+      name: "Emma Wilson",
+      specialty: "Event Photographer",
+      rating: 4.9,
+      reviewCount: 156,
+      verified: true,
+      location: "1.5 miles away",
+      hourlyRate: "$120/hr",
+      image:
+        "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
+      category: "photographers",
+    },
+    {
+      id: 5,
+      name: "Alex Turner",
+      specialty: "Web Developer",
+      rating: 4.8,
+      reviewCount: 89,
+      verified: true,
+      location: "2.1 miles away",
+      hourlyRate: "$95/hr",
+      image:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+      category: "web-developers",
     },
   ];
 
-  const CategoryCard = ({ category, isSelected, onPress }) => {
-    const IconComponent = category.icon;
+  const handleCategoryPress = (categoryId) => {
+    setSelectedCategory(categoryId);
+    setViewMode("subcategories");
+  };
+
+  const handleSubcategoryPress = (subcategoryId) => {
+    setSelectedSubcategory(subcategoryId);
+    // Here you could navigate to a contractors list filtered by subcategory
+    // For now, we'll just set the selection
+  };
+
+  const handleBackToCategories = () => {
+    setViewMode("categories");
+    setSelectedCategory(null);
+    setSelectedSubcategory(null);
+  };
+
+  const getCategoryData = () => {
+    if (viewMode === "categories") {
+      return CATEGORIES;
+    }
+
+    const category = CATEGORIES.find((cat) => cat.id === selectedCategory);
+    return category ? category.subcategories : [];
+  };
+
+  const getFilteredContractors = () => {
+    if (!selectedSubcategory) {
+      return featuredContractors;
+    }
+
+    return featuredContractors.filter(
+      (contractor) => contractor.category === selectedSubcategory,
+    );
+  };
+
+  const CategoryCard = ({
+    category,
+    isSelected,
+    onPress,
+    isSubcategory = false,
+  }) => {
+    const IconComponent = getIconComponent(category.icon);
 
     return (
       <Pressable
         style={({ pressed }) => ({
           backgroundColor: isSelected
-            ? category.color
+            ? category.color || theme.colors.primary
             : theme.colors.cardBackground,
           borderRadius: 12,
           padding: 16,
           marginRight: 12,
           alignItems: "center",
-          minWidth: 80,
+          minWidth: isSubcategory ? 120 : 80,
           opacity: pressed ? 0.7 : 1,
           ...theme.colors.shadow,
         })}
@@ -139,7 +168,9 @@ export default function HomeScreen() {
       >
         <IconComponent
           size={24}
-          color={isSelected ? "#FFFFFF" : category.color}
+          color={
+            isSelected ? "#FFFFFF" : category.color || theme.colors.primary
+          }
         />
         <Text
           style={{
@@ -148,10 +179,27 @@ export default function HomeScreen() {
             color: isSelected ? "#FFFFFF" : theme.colors.text,
             marginTop: 8,
             textAlign: "center",
+            lineHeight: 16,
           }}
         >
           {category.name}
         </Text>
+        {!isSubcategory && category.description && (
+          <Text
+            style={{
+              fontFamily: "Inter_400Regular",
+              fontSize: 10,
+              color: isSelected
+                ? "rgba(255,255,255,0.8)"
+                : theme.colors.textSecondary,
+              marginTop: 4,
+              textAlign: "center",
+              lineHeight: 12,
+            }}
+          >
+            {category.description}
+          </Text>
+        )}
       </Pressable>
     );
   };
@@ -201,12 +249,17 @@ export default function HomeScreen() {
               {contractor.verified && (
                 <View
                   style={{
-                    backgroundColor: theme.colors.iconBackground.verified,
+                    backgroundColor:
+                      theme.colors.iconBackground?.verified ||
+                      theme.colors.primarySoft,
                     borderRadius: 10,
                     padding: 4,
                   }}
                 >
-                  <Shield size={12} color={theme.colors.verified} />
+                  <Shield
+                    size={12}
+                    color={theme.colors.verified || theme.colors.primary}
+                  />
                 </View>
               )}
             </View>
@@ -347,39 +400,73 @@ export default function HomeScreen() {
         />
       </View>
 
-      {/* Categories */}
+      {/* Categories Section */}
       <View style={{ marginBottom: 32 }}>
-        <Text
+        <View
           style={{
-            fontFamily: "Inter_600SemiBold",
-            fontSize: 18,
-            color: theme.colors.text,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
             marginBottom: 16,
           }}
         >
-          Categories
-        </Text>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            {viewMode === "subcategories" && (
+              <Pressable
+                style={({ pressed }) => ({
+                  backgroundColor: theme.colors.cardBackground,
+                  borderRadius: 12,
+                  padding: 8,
+                  marginRight: 12,
+                  opacity: pressed ? 0.7 : 1,
+                  ...theme.colors.shadow,
+                })}
+                onPress={handleBackToCategories}
+              >
+                <ArrowLeft size={20} color={theme.colors.text} />
+              </Pressable>
+            )}
+            <Text
+              style={{
+                fontFamily: "Inter_600SemiBold",
+                fontSize: 18,
+                color: theme.colors.text,
+              }}
+            >
+              {viewMode === "categories"
+                ? "Categories"
+                : CATEGORIES.find((cat) => cat.id === selectedCategory)?.name ||
+                  "Services"}
+            </Text>
+          </View>
+        </View>
+
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           style={{ flexGrow: 0 }}
         >
-          {categories.map((category) => (
+          {getCategoryData().map((category) => (
             <CategoryCard
               key={category.id}
               category={category}
-              isSelected={selectedCategory === category.id}
+              isSelected={
+                viewMode === "categories"
+                  ? selectedCategory === category.id
+                  : selectedSubcategory === category.id
+              }
+              isSubcategory={viewMode === "subcategories"}
               onPress={() =>
-                setSelectedCategory(
-                  selectedCategory === category.id ? null : category.id,
-                )
+                viewMode === "categories"
+                  ? handleCategoryPress(category.id)
+                  : handleSubcategoryPress(category.id)
               }
             />
           ))}
         </ScrollView>
       </View>
 
-      {/* Featured Contractors */}
+      {/* Featured/Filtered Contractors */}
       <View>
         <Text
           style={{
@@ -389,11 +476,47 @@ export default function HomeScreen() {
             marginBottom: 16,
           }}
         >
-          Featured Contractors
+          {selectedSubcategory ? "Contractors" : "Featured Contractors"}
         </Text>
-        {featuredContractors.map((contractor) => (
+        {getFilteredContractors().map((contractor) => (
           <ContractorCard key={contractor.id} contractor={contractor} />
         ))}
+
+        {selectedSubcategory && getFilteredContractors().length === 0 && (
+          <View
+            style={{
+              backgroundColor: theme.colors.cardBackground,
+              borderRadius: 16,
+              padding: 24,
+              alignItems: "center",
+              ...theme.colors.shadow,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: "Inter_500Medium",
+                fontSize: 16,
+                color: theme.colors.text,
+                marginBottom: 8,
+                textAlign: "center",
+              }}
+            >
+              No contractors found
+            </Text>
+            <Text
+              style={{
+                fontFamily: "Inter_400Regular",
+                fontSize: 14,
+                color: theme.colors.textSecondary,
+                textAlign: "center",
+                lineHeight: 20,
+              }}
+            >
+              We're working on adding more contractors in this category. Try
+              browsing other services or check back soon!
+            </Text>
+          </View>
+        )}
       </View>
     </ScreenContainer>
   );

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import AsyncStorage from "react-native-async-storage";
+import * as SecureStore from "expo-secure-store";
 import { translations } from "./translations";
 
 const LanguageContext = createContext();
@@ -14,7 +14,7 @@ export const LanguageProvider = ({ children }) => {
 
   const loadSavedLanguage = async () => {
     try {
-      const savedLanguage = await AsyncStorage.getItem("userLanguage");
+      const savedLanguage = await SecureStore.getItemAsync("userLanguage");
       if (savedLanguage && translations[savedLanguage]) {
         setCurrentLanguage(savedLanguage);
       }
@@ -29,7 +29,7 @@ export const LanguageProvider = ({ children }) => {
     if (translations[language]) {
       setCurrentLanguage(language);
       try {
-        await AsyncStorage.setItem("userLanguage", language);
+        await SecureStore.setItemAsync("userLanguage", language);
       } catch (error) {
         console.error("Error saving language:", error);
       }
